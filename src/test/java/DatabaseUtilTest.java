@@ -1,10 +1,11 @@
+import com.dataspec.DatabaseUtil;
 import com.dataspec.cassandra.CassandraConfiguration;
 import com.dataspec.cassandra.CassandraConnectionHandle;
 import com.dataspec.connection.ConnectionHandle;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import exception.ExpectationNeverMetException;
+import com.dataspec.exception.ExpectationNeverMetException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
