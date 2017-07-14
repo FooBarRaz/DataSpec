@@ -2,11 +2,10 @@ package com.dataspec.cassandra;
 
 import com.dataspec.connection.ConnectionHandle;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
-import java.sql.ResultSet;
-
-public class CassandraConnectionHandle implements ConnectionHandle {
+public class CassandraConnectionHandle implements ConnectionHandle<Row> {
 
     private final Cluster cluster;
     private CassandraConfiguration config;
@@ -17,10 +16,9 @@ public class CassandraConnectionHandle implements ConnectionHandle {
         this.config = config;
     }
 
-    public ResultSet execute(String query) {
+    public Iterable<Row> execute(String query) {
         connect();
-        session.execute(query);
-        return null;
+        return session.execute(query);
     }
 
     private void connect() {

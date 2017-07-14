@@ -6,10 +6,10 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
+import java.sql.SQLException;
 import java.util.UUID;
 
 import static java.lang.String.format;
@@ -50,9 +50,19 @@ public class DatabaseUtilTest {
         assertThat(result.getString("value"), is(randomValue));
     }
 
-    @Ignore("todo")
     @Test
-    public void execute_shouldReadFromDatabase() {
+    public void execute_shouldReadFromDatabase() throws SQLException {
+        insertTestTable();
+        final Session session = getCluster().connect(KEYSPACE);
+        String randomValue = UUID.randomUUID().toString();
+        session.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
+
+        Iterable<Row> query = databaseUtil.query("select * from test_table", Row.class);
+
+        assertThat(query.iterator().hasNext(), is(true));
+        Row row = query.iterator().next();
+        assertThat(row.getString("key"), is("test-key"));
+        assertThat(row.getString("value"), is(randomValue));
     }
 
     private void insertTestTable() {

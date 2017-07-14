@@ -1,7 +1,5 @@
 package com.dataspec.connection;
 
-import java.sql.ResultSet;
-
-public interface ConnectionHandle {
-    ResultSet execute(String query);
+public interface ConnectionHandle<T> {
+    Iterable<T> execute(String query);
 }

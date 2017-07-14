@@ -11,6 +11,9 @@ public class DatabaseUtil {
 
     public void execute(String query) {
         handle.execute(query);
+    }
 
+    public <T> Iterable<T> query(String query, Class<T> type) {
+        return handle.execute(query);
     }
 }
