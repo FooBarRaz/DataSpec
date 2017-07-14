@@ -14,6 +14,7 @@ import org.junit.rules.ExpectedException;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -80,10 +81,7 @@ public class DatabaseUtilTest {
         String randomValue = UUID.randomUUID().toString();
 
         newFixedThreadPool(2).submit(() -> {
-            try {
-                SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-            }
+            waitFor(1, SECONDS);
             session.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
         });
 
@@ -107,6 +105,14 @@ public class DatabaseUtilTest {
                 "primary key (key));");
         session.execute("truncate table test_table");
         session.close();
+    }
+
+    private void waitFor(int timeout, TimeUnit seconds) {
+        try {
+            seconds.sleep(timeout);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 
