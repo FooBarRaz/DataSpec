@@ -4,15 +4,20 @@ import com.dataspec.connection.ConnectionHandle;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import exception.ExpectationNeverMetException;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
 import java.util.UUID;
 
 import static java.lang.String.format;
+import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -21,6 +26,9 @@ public class DatabaseUtilTest {
     private static final int PORT = 9042;
     private static final String KEYSPACE = "test_keyspace";
     private DatabaseUtil databaseUtil;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void initializeKeyspace() {
@@ -57,12 +65,38 @@ public class DatabaseUtilTest {
         String randomValue = UUID.randomUUID().toString();
         session.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
 
-        Iterable<Row> query = databaseUtil.query("select * from test_table", Row.class);
+        Iterable<Row> query = databaseUtil.query("select * from test_table");
 
         assertThat(query.iterator().hasNext(), is(true));
         Row row = query.iterator().next();
         assertThat(row.getString("key"), is("test-key"));
         assertThat(row.getString("value"), is(randomValue));
+    }
+
+    @Test
+    public void waitForExpectedValue_whenExpectationMet_returnsSilently() throws Exception {
+        insertTestTable();
+        final Session session = getCluster().connect(KEYSPACE);
+        String randomValue = UUID.randomUUID().toString();
+
+        newFixedThreadPool(2).submit(() -> {
+            try {
+                SECONDS.sleep(1);
+            } catch (InterruptedException e) {
+            }
+            session.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
+        });
+
+        databaseUtil.waitForExpectedValue(format("select * from test_table where key='test-key' and value='%s' ALLOW FILTERING", randomValue), (Iterable<Row> rows) -> rows.iterator().hasNext());
+    }
+
+    @Test
+    public void waitForExpectedValue_whenTimeoutExpired_throwsException() throws Exception {
+        insertTestTable();
+        String randomValue = UUID.randomUUID().toString();
+
+        expectedException.expect(ExpectationNeverMetException.class);
+        databaseUtil.waitForExpectedValue(format("select * from test_table where key='test-key' and value='%s' ALLOW FILTERING", randomValue), (Iterable<Row> rows) -> rows.iterator().hasNext());
     }
 
     private void insertTestTable() {
