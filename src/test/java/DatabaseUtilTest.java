@@ -53,7 +53,7 @@ public class DatabaseUtilTest {
         insertTestTable();
 
         final String randomValue = UUID.randomUUID().toString();
-        databaseUtil.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
+        databaseUtil.executeStatement(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
 
         Row result = getCluster().connect(KEYSPACE).execute("select * from test_table").one();
         assertThat(result.getString("key"), is("test-key"));
@@ -67,7 +67,7 @@ public class DatabaseUtilTest {
         String randomValue = UUID.randomUUID().toString();
         session.execute(format("insert into test_table (key, value) values('test-key', '%s');", randomValue));
 
-        Iterable<Row> query = databaseUtil.query("select * from test_table");
+        Iterable<Row> query = databaseUtil.runQuery("select * from test_table");
 
         assertThat(query.iterator().hasNext(), is(true));
         Row row = query.iterator().next();

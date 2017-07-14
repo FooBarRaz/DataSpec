@@ -5,7 +5,6 @@ import com.dataspec.exception.ExpectationNeverMetException;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static java.time.Instant.now;
@@ -15,16 +14,17 @@ public class DatabaseUtil {
 
     private ConnectionHandle handle;
     private Duration timeout = Duration.ofSeconds(5);
+    private Duration interval = Duration.ofMillis(500);
 
     public DatabaseUtil(ConnectionHandle handle) {
         this.handle = handle;
     }
 
-    public void execute(String query) {
+    public void executeStatement(String query) {
         handle.execute(query);
     }
 
-    public <T> Iterable<T> query(String query) {
+    public <T> Iterable<T> runQuery(String query) {
         return handle.execute(query);
     }
 
@@ -36,29 +36,30 @@ public class DatabaseUtil {
         boolean success;
         Instant endTime = now().plus(timeout);
         do {
-            success = checkForValue(query, predicate);
-            if (!success) waitFor(500, MILLISECONDS);
+            success = pollForValue(query, predicate);
         }
         while (notYet(endTime) && !success);
 
         if (!success) throw new ExpectationNeverMetException("aw shit");
     }
 
-    private <T> boolean checkForValue(String query, Predicate<Iterable<T>> predicate) {
-        Iterable<?> result;
-        boolean success;
-        result = query(query);
-        success = predicate.test((Iterable<T>) result);
+    private <T> boolean pollForValue(String query, Predicate<Iterable<T>> predicate) {
+        boolean success = checkForValue(query, predicate);
+        if (!success) waitFor(interval);
         return success;
+    }
+
+    private <T> boolean checkForValue(String queryString, Predicate<Iterable<T>> predicate) {
+        return predicate.test(runQuery(queryString));
     }
 
     private boolean notYet(Instant endTime) {
         return now().isBefore(endTime);
     }
 
-    private void waitFor(int timeout, TimeUnit timeUnit) {
+    private void waitFor(Duration duration) {
         try {
-            timeUnit.sleep(timeout);
+            MILLISECONDS.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
